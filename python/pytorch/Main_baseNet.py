@@ -1,3 +1,4 @@
+from typing import Pattern
 import numpy as np
 import torch
 import os
@@ -25,14 +26,14 @@ decay         = torch.tensor(1e-6)  # weight decay for regularisation
 num_works     = 6                   # setting in DataLoader Default: 0
 random_seed   = 42
 in_channels   = 1                   # 1 for grey, 3 for PIL
-kernel_size   = 3                   # kenel_size for conv layers
+kernel_size   = 10                   # kenel_size for conv layers
 ONEloss       = 'mean'                # reduce for loss function
 
 saving_best   = True
-NUM_savingBatch = 10
-Load_model    = True
+Load_model    = False
 MNISTsaveFolder = 'D:\\study\\PatternDL\\python\\data'
-SaveModelFile = 'D:\\study\\PatternDL\\python\\data\\MoreNet_kernel3x3'
+SaveModelFile = 'D:\\study\\PatternDL\\python\\data\\Net_Layers2_kernel8x8'
+PatternFileName= 'PatternPink.npy'
 datamean      = 0.5
 datastd       = 0.5
 TestMODE      = False
@@ -62,7 +63,11 @@ def Training(trainingLoader,device,model):
             loss.backwards()
             optimizer.step()
         print('Epoch: {:d}, Blursigma: {:}'.format(epoch,blursigma))
-def DeviceChosen():
+def BasicSettings():
+    global imsize
+    imsize = imsize*2 if (len(imsize)==1) else imsize
+
+    PatternOrigin = torch.from_numpy(np.load(PatternFileName))[0:imsize[0],0:imsize[1]] * torch.ones([batch_size,1,imsize[0],imsize[1]])
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
@@ -73,7 +78,7 @@ def DeviceChosen():
         Number_Pattern = beta * imsize**2
 
     print("Device: ",device,' Pattern Number: {:d} Beta: {:f}'.format(int(Number_Pattern),beta))
-    return device ,int(Number_Pattern)
+    return device ,int(Number_Pattern),imsize,PatternOrigin
 
 def generateCGI_func(img_ori, pattern , Number_Pattern , batch_size ,stdInputImg):
     """
@@ -141,16 +146,13 @@ def LoadModel(model):
     
 
 def main():
-    global imsize
-    imsize = imsize*2 if (len(imsize)==1) else imsize
-
-    PatternWhite = torch.from_numpy(np.load('PatternWhite.npy'))[0:imsize[0],0:imsize[1]] * torch.ones([batch_size,1,imsize[0],imsize[1]])
-    device,Number_Pattern = DeviceChosen()
+    
+    device,Number_Pattern,imsize,PatternOrigin = BasicSettings()
     trainingLoader  = LoadData(imsize=imsize , train = True)
-    testingLoader   = LoadData(imsize=imsize , train = False)
+    
     # model = CONVPatternNetBASE(Number_Pattern ,in_channels= in_channels,kernel_size= kernel_size)
-    # model = CONVPatternNetMoreLayer(Number_Pattern,int(Number_Pattern/2) ,in_channels= in_channels,kernel_size= kernel_size)
-    model = CONVPatternNet3kernel(Number_Pattern ,in_channels= in_channels,kernel_size= kernel_size)
+    model = CONVPatternNetMoreLayer(Number_Pattern,int(Number_Pattern/2) ,in_channels= in_channels,kernel_size= kernel_size)
+    # model = CONVPatternNet3kernel(Number_Pattern ,in_channels= in_channels,kernel_size= kernel_size)
     MINloss = 1e5
     MINtestLoss = 1e5
     epochTrainingLoss,epochTestingLoss = [] ,[]
@@ -158,7 +160,7 @@ def main():
     # load model
     if Load_model or TestMODE:
         model,epoch,epochTrainingLoss,MINloss = LoadModel(model)
-    model,PatternWhite = model.to(device),PatternWhite.float().to(device)
+    model,PatternOrigin = model.to(device),PatternOrigin.float().to(device)
     optimizer = torch.optim.SGD( model.parameters() , lr=learning_rate, momentum=momentum, weight_decay=decay)
 
     
@@ -168,12 +170,13 @@ def main():
         #                       testing process
         # --------------------------------------------------------
         with torch.no_grad():
+            testingLoader   = LoadData(imsize=imsize , train = False)
             model.zero_grad()
             test_loss  = []
-            for batchNum , (data, target) in enumerate(trainingLoader):
+            for batchNum , (data, target) in enumerate(testingLoader):
                 model.zero_grad()
                 input_image = data.to(device)
-                Patterns = model(PatternWhite)
+                Patterns = model(PatternOrigin)
                 stdInputImg = torch.std(input_image)
                 CGI_image = generateCGI_func(input_image, Patterns, Number_Pattern,batch_size,stdInputImg)
                 loss = F.mse_loss(input_image,CGI_image,reduction=ONEloss)
@@ -208,7 +211,7 @@ def main():
         for batch , (input_image, target) in enumerate(trainingLoader):
             model.zero_grad()
             input_image     = input_image.to(device)
-            Patterns        = model(PatternWhite)
+            Patterns        = model(PatternOrigin)
             stdInputImg     = torch.std(input_image)
             CGI_image       = generateCGI_func(input_image, Patterns, Number_Pattern,batch_size,stdInputImg)
             loss            = F.mse_loss(input_image,CGI_image,reduction=ONEloss)
