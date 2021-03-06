@@ -15,14 +15,14 @@ import torch.nn.functional as F
 from torchvision.datasets import MNIST
 import shutil
 #---------------------- parameters -----------------
-batch_size    = 32                 # number of samples per mini-batch
+batch_size    = 1                 # number of samples per mini-batch
 Epochs        = 200                   # total epochs for training process
 learning_rate = 5e-3
 imsize        = [56]
 beta          = 0.05                # sampling rate
 momentum      = torch.tensor(8e-1)  # momentum for optimizer
 decay         = torch.tensor(1e-6)  # weight decay for regularisation
-num_works     = 6                   # setting in DataLoader Default: 0
+num_works     = 0                   # setting in DataLoader Default: 0
 random_seed   = 42
 in_channels   = 1                   # 1 for grey, 3 for PIL
 kernel_size   = 3                   # kenel_size for conv layers
@@ -30,12 +30,12 @@ ONEloss       = 'mean'                # reduce for loss function
 
 saving_best   = True
 NUM_savingBatch = 10
-Load_model    = True
+Load_model    = False
 MNISTsaveFolder = 'D:\\study\\PatternDL\\python\\data'
 SaveModelFile = 'D:\\study\\PatternDL\\python\\data\\MoreNet_kernel3x3'
 datamean      = 0.5
 datastd       = 0.5
-TestMODE      = False
+TestMODE      = True
 
 #--------------------------------------------------
 
@@ -170,7 +170,7 @@ def main():
         with torch.no_grad():
             model.zero_grad()
             test_loss  = []
-            for batchNum , (data, target) in enumerate(trainingLoader):
+            for batchNum , (data, target) in enumerate(testingLoader):
                 model.zero_grad()
                 input_image = data.to(device)
                 Patterns = model(PatternWhite)
@@ -205,6 +205,8 @@ def main():
     for epoch in range(Epochs):
         model.train()
         train_losses = []
+        
+        
         for batch , (input_image, target) in enumerate(trainingLoader):
             model.zero_grad()
             input_image     = input_image.to(device)
@@ -230,5 +232,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
-    
