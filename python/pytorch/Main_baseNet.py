@@ -1,29 +1,24 @@
-from typing import Pattern
 import numpy as np
 import torch
 import os
 from torch import nn
 import matplotlib.pyplot as plt
-from torch._C import device
-from torch.autograd.variable import Variable
 from torch.utils.data.dataloader import DataLoader
-from torch.utils.data.dataset import TensorDataset
-from torchvision import transforms
+
 from generateCGI import *
 from ultils import *
 from model import *
 import torch.nn.functional as F
 from torchvision.datasets import MNIST
-import shutil
 #---------------------- parameters -----------------
 batch_size    = 32                 # number of samples per mini-batch
 Epochs        = 200                   # total epochs for training process
 learning_rate = 5e-3
-imsize        = [56]
-beta          = 0.01                # sampling rate
+imsize        = [84]
+beta          = 0.005                # sampling rate
 momentum      = torch.tensor(8e-1)  # momentum for optimizer
 decay         = torch.tensor(1e-6)  # weight decay for regularisation
-num_works     = 0                   # setting in DataLoader Default: 0
+num_works     = 6                   # setting in DataLoader Default: 0
 random_seed   = 42
 in_channels   = 1                   # 1 for grey, 3 for PIL
 kernel_size   = 10                   # kenel_size for conv layers
@@ -64,37 +59,36 @@ def Training(trainingLoader,device,model):
             optimizer.step()
         print('Epoch: {:d}, Blursigma: {:}'.format(epoch,blursigma))
 def BasicSettings():
-    global imsize
+    global imsize ,batch_size,num_works
     imsize = imsize*2 if (len(imsize)==1) else imsize
-
+    if TestMODE:
+        batch_size,num_works = 1,0
     PatternOrigin = torch.from_numpy(np.load(PatternFileName))[0:imsize[0],0:imsize[1]] * torch.ones([batch_size,1,imsize[0],imsize[1]])
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
-
+    
     if len(imsize) == 2:
-        Number_Pattern = beta * imsize[0]*imsize[1]
+        Number_Pattern =int( beta * imsize[0]*imsize[1])
     else:
-        Number_Pattern = beta * imsize**2
+        Number_Pattern =int( beta * imsize**2)
 
     print("Device: ",device,' Pattern Number: {:d} Beta: {:f}'.format(int(Number_Pattern),beta))
-    return device ,int(Number_Pattern),imsize,PatternOrigin
+    return device ,Number_Pattern,PatternOrigin,torch.tensor(Number_Pattern).float()
 
 def generateCGI_func(img_ori, pattern , Number_Pattern , batch_size ,stdInputImg):
     """
-    generate ghost images from image_ori
-    img_ori : Tensor [batch_size, in_channel, [imsize]]
-    pattern : Tensor [batch_size, Number_Pattern, [imsize]]
-    Number_Pattern : int 
-    imsize : int or turple with length of 2
-    CGIpic is normalized, and target is range from 0 to 255
-    the CGIpic is normalized to mean value 0.25 0.2891
+        generate ghost images from image_ori
+        img_ori : Tensor [batch_size, in_channel, [imsize]]
+        pattern : Tensor [batch_size, Number_Pattern, [imsize]]
+        Number_Pattern : int 
+        imsize : int or turple with length of 2
+        CGIpic is normalized, and target is range from 0 to 255
+        the CGIpic is normalized to mean value 0.25 0.2891
 
-    Other variables in this function 
-    I : intensity [bacth_size, Number_Pattern]
-
+        Other variables in this function 
+        I : intensity [bacth_size, Number_Pattern]
     """
-    
     
     I = torch.sum( pattern * img_ori, (2,3))
     PI = torch.sum(
@@ -105,7 +99,12 @@ def generateCGI_func(img_ori, pattern , Number_Pattern , batch_size ,stdInputImg
     CGI_img = PI.view_as(img_ori) - Pmean.view_as(img_ori) * Imean.view([batch_size,1,1,1])
     # MAXCGIimg = torch.max(CGI_img,0)
     # CGI_img = CGI_img / torch.max(CGI_img,0)
+    npySave('Intensity.npy',I)
+    npySave('Pmean.npy',Pmean)
+    npySave('PI.npy',PI)
+    npySave('CGI_img.npy',CGI_img)
     CGI_img = (CGI_img - torch.mean(CGI_img) + 0.5)/torch.std(CGI_img)* stdInputImg
+    
     return CGI_img
 def SavingModel(model,optimizer,epoch,TrainingLosses,MINloss):
     if not os.path.isdir(SaveModelFile):
@@ -143,11 +142,12 @@ def LoadModel(model):
     epochTrainingLoss   = state['TrainingLosses']
     MINloss             = state['MINloss']
     return model,epoch,epochTrainingLoss,MINloss
-    
+def npySave(FileName,tensor):
+    np.save(os.path.join(SaveModelFile,FileName),tensor.to('cpu').detach().numpy())
 
 def main():
     
-    device,Number_Pattern,imsize,PatternOrigin = BasicSettings()
+    device,Number_Pattern,PatternOrigin,NumPatternTensor = BasicSettings()
     trainingLoader  = LoadData(imsize=imsize , train = True)
     
     # model = CONVPatternNetBASE(Number_Pattern ,in_channels= in_channels,kernel_size= kernel_size)
@@ -169,6 +169,8 @@ def main():
         # --------------------------------------------------------
         #                       testing process
         # --------------------------------------------------------
+        plt.plot(range(len(epochTrainingLoss)),epochTrainingLoss)
+        plt.show()
         with torch.no_grad():
             testingLoader   = LoadData(imsize=imsize , train = False)
             model.zero_grad()
@@ -179,6 +181,10 @@ def main():
                 Patterns = model(PatternOrigin)
                 stdInputImg = torch.std(input_image)
                 CGI_image = generateCGI_func(input_image, Patterns, Number_Pattern,batch_size,stdInputImg)
+                npySave('Patterns.npy',Patterns)
+                npySave('PatternOrigin.npy',PatternOrigin)
+                npySave('input_image.npy',input_image)
+                
                 loss = F.mse_loss(input_image,CGI_image,reduction=ONEloss)
                 test_loss.append(loss.item())
                 input_image = data.to(device)
@@ -222,7 +228,7 @@ def main():
         epochTrainingLoss.append(np.mean(train_losses))
         if epochTrainingLoss[-1] < MINloss and saving_best and batch > 1000:
                 MINloss = epochTrainingLoss[-1]
-                print("Epoch: {:} Current loss: {:}, saving the model to {:}".format(epoch,MINloss,SaveModelFile))
+                print("Epoch: {:}, saving the model to {:}".format(epoch,SaveModelFile))
                 SavingModel(model,optimizer,epoch,epochTrainingLoss,MINloss)
         
         
