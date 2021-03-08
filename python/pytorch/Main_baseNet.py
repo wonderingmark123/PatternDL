@@ -14,25 +14,24 @@ from torchvision.datasets import MNIST
 batch_size    = 32                 # number of samples per mini-batch
 Epochs        = 200                   # total epochs for training process
 learning_rate = 5e-3
-imsize        = [112]
-beta          = 0.001                # sampling rate
+imsize        = [84]
+beta          = 0.005                # sampling rate
 momentum      = torch.tensor(8e-1)  # momentum for optimizer
 decay         = torch.tensor(1e-6)  # weight decay for regularisation
 num_works     = 6                   # setting in DataLoader Default: 0
 random_seed   = 42
-in_channels   = 1                   # 1 for grey, 3 for PIL
-kernel_size   = 16                   # kenel_size for conv layers
+in_channels   = 9                   # 1 for grey, 3 for PIL
+kernel_size   = 10                   # kenel_size for conv layers
 ONEloss       = 'mean'                # reduce for loss function
 
 saving_best   = True
 Load_model    = False
 MNISTsaveFolder = 'D:\\study\\PatternDL\\python\\data'
-SaveModelFile = 'D:\\study\\PatternDL\\python\\data\\Net_Layers2_pink_beta0001_imsize112_kernel16x16'
-PatternFileName= 'PatternPink.npy'
+SaveModelFile = 'D:\\study\\PatternDL\\python\\data\\Net_Layers2_pink9_beta0005_imsize84_kernel10'
+PatternFileName= 'PatternPink9.npy'
 datamean      = 0.5
 datastd       = 0.5
-TestMODE      = True
-MorePatternNum= 3                   # Number of patterns for input of net
+TestMODE      = False
 #--------------------------------------------------
 
 def LoadData(imsize=[54,98],train = True):
@@ -66,9 +65,9 @@ def BasicSettings():
     PatternOrigin = np.load(PatternFileName)
     PatternShape = np.shape(PatternOrigin)
     if len(PatternShape)==3:
-        PatternOrigin = torch.from_numpy(PatternOrigin)[0:imsize[0],0:imsize[1],0:MorePatternNum] * torch.ones([batch_size,1,imsize[0],imsize[1],MorePatternNum])
+        PatternOrigin = torch.from_numpy(PatternOrigin)[0:in_channels,0:imsize[0],0:imsize[1]] * torch.ones([batch_size,in_channels,imsize[0],imsize[1]])
     else:
-        PatternOrigin = torch.from_numpy(PatternOrigin)[0:imsize[0],0:imsize[1]] * torch.ones([batch_size,1,imsize[0],imsize[1]])
+        PatternOrigin = torch.from_numpy(PatternOrigin)[0:imsize[0],0:imsize[1]] * torch.ones([batch_size,in_channels,imsize[0],imsize[1]])
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
@@ -153,6 +152,7 @@ def main():
     
     # model = CONVPatternNetBASE(Number_Pattern ,in_channels= in_channels,kernel_size= kernel_size)
     model = CONVPatternNetMoreLayer(Number_Pattern,int(Number_Pattern/2) ,in_channels= in_channels,kernel_size= kernel_size)
+    
     # model = CONVPatternNet3kernel(Number_Pattern ,in_channels= in_channels,kernel_size= kernel_size)
     MINloss ,epochNow = 1e5,0
     MINtestLoss = 1e5
@@ -176,7 +176,7 @@ def main():
             testingLoader   = LoadData(imsize=imsize , train = False)
             model.zero_grad()
             test_loss  = []
-            for batchNum , (data, target) in enumerate(testingLoader):
+            for batchNum , (data, target) in enumerate(trainingLoader):
                 model.zero_grad()
                 input_image = data.to(device)
                 Patterns = model(PatternOrigin)
@@ -199,8 +199,8 @@ def main():
                 print(torch.max(CGI_image))
                 print(torch.min(CGI_image))
                 plt.show()
-                showx = 5
-                showy = 5
+                showx = 3
+                showy = 3
                 for i in range(1,showx * showy+1):
                     plt.subplot(showx,showy,i)
                     plt.imshow(Patterns.to('cpu').detach().numpy()[0,i,:,:])
