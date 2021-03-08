@@ -33,7 +33,7 @@ for j=1:1:Nth
 %     PI=PI+eval(['I(',num2str(j),').*txt',num2str(j),'(1:sizex,1:sizey)']);
    
 end
-I=I+rand(1,length(I))*2*0.05.*mean(I);
+% I=I+rand(1,length(I))*2*0.05.*mean(I);
 
 for j = 1:Nth
      PI=PI+I(j).*txt(:,:,j);

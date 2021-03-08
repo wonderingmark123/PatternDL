@@ -14,25 +14,25 @@ from torchvision.datasets import MNIST
 batch_size    = 32                 # number of samples per mini-batch
 Epochs        = 200                   # total epochs for training process
 learning_rate = 5e-3
-imsize        = [84]
-beta          = 0.005                # sampling rate
+imsize        = [112]
+beta          = 0.001                # sampling rate
 momentum      = torch.tensor(8e-1)  # momentum for optimizer
 decay         = torch.tensor(1e-6)  # weight decay for regularisation
 num_works     = 6                   # setting in DataLoader Default: 0
 random_seed   = 42
 in_channels   = 1                   # 1 for grey, 3 for PIL
-kernel_size   = 10                   # kenel_size for conv layers
+kernel_size   = 16                   # kenel_size for conv layers
 ONEloss       = 'mean'                # reduce for loss function
 
 saving_best   = True
 Load_model    = False
 MNISTsaveFolder = 'D:\\study\\PatternDL\\python\\data'
-SaveModelFile = 'D:\\study\\PatternDL\\python\\data\\Net_Layers2_pink_beta003_kernel8x8'
+SaveModelFile = 'D:\\study\\PatternDL\\python\\data\\Net_Layers2_pink_beta0001_imsize112_kernel16x16'
 PatternFileName= 'PatternPink.npy'
 datamean      = 0.5
 datastd       = 0.5
-TestMODE      = False
-
+TestMODE      = True
+MorePatternNum= 3                   # Number of patterns for input of net
 #--------------------------------------------------
 
 def LoadData(imsize=[54,98],train = True):
@@ -63,7 +63,12 @@ def BasicSettings():
     imsize = imsize*2 if (len(imsize)==1) else imsize
     if TestMODE:
         batch_size,num_works = 1,0
-    PatternOrigin = torch.from_numpy(np.load(PatternFileName))[0:imsize[0],0:imsize[1]] * torch.ones([batch_size,1,imsize[0],imsize[1]])
+    PatternOrigin = np.load(PatternFileName)
+    PatternShape = np.shape(PatternOrigin)
+    if len(PatternShape)==3:
+        PatternOrigin = torch.from_numpy(PatternOrigin)[0:imsize[0],0:imsize[1],0:MorePatternNum] * torch.ones([batch_size,1,imsize[0],imsize[1],MorePatternNum])
+    else:
+        PatternOrigin = torch.from_numpy(PatternOrigin)[0:imsize[0],0:imsize[1]] * torch.ones([batch_size,1,imsize[0],imsize[1]])
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
@@ -74,7 +79,7 @@ def BasicSettings():
         Number_Pattern =int( beta * imsize**2)
 
     print("Device: ",device,' Pattern Number: {:d} Beta: {:f}'.format(int(Number_Pattern),beta))
-    return device ,Number_Pattern,PatternOrigin,torch.tensor(Number_Pattern).float()
+    return device ,Number_Pattern,PatternOrigin
 
 def generateCGI_func(img_ori, pattern , Number_Pattern , batch_size ,stdInputImg):
     """
@@ -99,10 +104,6 @@ def generateCGI_func(img_ori, pattern , Number_Pattern , batch_size ,stdInputImg
     CGI_img = PI.view_as(img_ori) - Pmean.view_as(img_ori) * Imean.view([batch_size,1,1,1])
     # MAXCGIimg = torch.max(CGI_img,0)
     # CGI_img = CGI_img / torch.max(CGI_img,0)
-    npySave('Intensity.npy',I)
-    npySave('Pmean.npy',Pmean)
-    npySave('PI.npy',PI)
-    npySave('CGI_img.npy',CGI_img)
     CGI_img = (CGI_img - torch.mean(CGI_img) + 0.5)/torch.std(CGI_img)* stdInputImg
     
     return CGI_img
@@ -147,19 +148,19 @@ def npySave(FileName,tensor):
 
 def main():
     
-    device,Number_Pattern,PatternOrigin,NumPatternTensor = BasicSettings()
+    device,Number_Pattern,PatternOrigin = BasicSettings()
     trainingLoader  = LoadData(imsize=imsize , train = True)
     
     # model = CONVPatternNetBASE(Number_Pattern ,in_channels= in_channels,kernel_size= kernel_size)
     model = CONVPatternNetMoreLayer(Number_Pattern,int(Number_Pattern/2) ,in_channels= in_channels,kernel_size= kernel_size)
     # model = CONVPatternNet3kernel(Number_Pattern ,in_channels= in_channels,kernel_size= kernel_size)
-    MINloss = 1e5
+    MINloss ,epochNow = 1e5,0
     MINtestLoss = 1e5
     epochTrainingLoss,epochTestingLoss = [] ,[]
 
     # load model
     if Load_model or TestMODE:
-        model,epoch,epochTrainingLoss,MINloss = LoadModel(model)
+        model,epochNow,epochTrainingLoss,MINloss = LoadModel(model)
     model,PatternOrigin = model.to(device),PatternOrigin.float().to(device)
     optimizer = torch.optim.SGD( model.parameters() , lr=learning_rate, momentum=momentum, weight_decay=decay)
 
@@ -211,7 +212,7 @@ def main():
     # --------------------------------------------------------
     
     print('Start training process :)')
-    for epoch in range(Epochs):
+    for epoch in range(epochNow,Epochs):
         model.train()
         train_losses = []
         for batch , (input_image, target) in enumerate(trainingLoader):
