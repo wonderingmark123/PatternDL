@@ -43,9 +43,10 @@ datastd = 0.5 ):
     # crop     = transforms.CenterCrop(imsize)
     resizeIMG  = transforms.Resize(size = imsize)
     # pad      = transforms.Pad((0, 0, 1, 1), fill=0)
+    rotate     = transforms.RandomRotation(180)
     totensor   = transforms.ToTensor()
     # normalise  = transforms.Normalize(datamean , datastd )
-
+    
     # transform = transforms.Compose([
     #         transforms.Grayscale(num_output_channels=1),
     #         transforms.Resize(50),
@@ -55,6 +56,7 @@ datastd = 0.5 ):
     
     transform = transforms.Compose([
         resizeIMG,
+        rotate,
         transforms.RandomRotation(360, resample=Image.BILINEAR, expand=False),
         totensor,
         # normalise,
