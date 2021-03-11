@@ -12,13 +12,13 @@ import torch.nn.functional as F
 from torchvision.datasets import MNIST
 #---------------------- parameters -----------------
 batch_size    = 32                 # number of samples per mini-batch
-Epochs        = 200                   # total epochs for training process
+Epochs        = 200                # total epochs for training process
 learning_rate = 5e-3
-imsize        = [84]
+imsize        = [112]
 beta          = 0.005                # sampling rate
 momentum      = torch.tensor(8e-1)  # momentum for optimizer
 decay         = torch.tensor(1e-6)  # weight decay for regularisation
-num_works     = 4                   # setting in DataLoader Default: 0
+num_works     = 3                   # setting in DataLoader Default: 0
 random_seed   = 42
 in_channels   = 1                   # 1 for grey, 3 for PIL
 kernel_size   = 10                   # kenel_size for conv layers
@@ -27,7 +27,7 @@ ONEloss       = 'mean'                # reduce for loss function
 saving_best   = True
 Load_model    = False
 MNISTsaveFolder = 'D:\\study\\PatternDL\\python\\data'
-SaveModelFile = 'D:\\study\\PatternDL\\python\\data\\Net_Layers2_pink_beta0005_imsize84_kernel10_rotate'
+SaveModelFile = 'D:\\study\\PatternDL\\python\\data\\Net_Layers2_pink_beta0005_imsize112_kernel10_rotate'
 PatternFileName= 'PatternPink.npy'
 datamean      = 0.5
 datastd       = 0.5
@@ -61,7 +61,10 @@ def BasicSettings():
     global imsize ,batch_size,num_works
     imsize = imsize*2 if (len(imsize)==1) else imsize
     if TestMODE:
+        print('testing mode now!')
         batch_size,num_works = 1,0
+    print("num_works: {:}, batch_size: {:}, kernel size: {:}".format(num_works,batch_size,kernel_size))
+    print('loading pattern: {:}'.format(PatternFileName))
     PatternOrigin = np.load(PatternFileName)
     PatternShape = np.shape(PatternOrigin)
     if len(PatternShape)==3:
@@ -170,6 +173,7 @@ def main():
         # --------------------------------------------------------
         #                       testing process
         # --------------------------------------------------------
+        print("last training losses are {:}, and the epoch of training is {:}".format(epochTrainingLoss[-3:],epochNow))
         plt.plot(range(len(epochTrainingLoss)),epochTrainingLoss)
         plt.show()
         with torch.no_grad():
