@@ -25,13 +25,14 @@ kernel_size   = 10                   # kenel_size for conv layers
 ONEloss       = 'mean'                # reduce for loss function
 
 saving_best   = True
-Load_model    = False
+Load_model    = True
 MNISTsaveFolder = 'D:\\study\\PatternDL\\python\\data'
-SaveModelFile = 'D:\\study\\PatternDL\\python\\data\\Net_Layers2_pink_beta0005_imsize112_kernel10_rotate'
+SaveModelFile = 'D:\\study\\PatternDL\\python\\data\\Net_Layers2_pink_beta0005_imsize112_kernel10_rotate_noise'
 PatternFileName= 'PatternPink.npy'
 datamean      = 0.5
 datastd       = 0.5
-TestMODE      = False
+TestMODE      = True
+Noise         = 0.03                   # ratio of noise for intensity
 #--------------------------------------------------
 
 def LoadData(imsize=[54,98],train = True):
@@ -82,7 +83,35 @@ def BasicSettings():
 
     print("Device: ",device,' Pattern Number: {:d} Beta: {:f}'.format(int(Number_Pattern),beta))
     return device ,Number_Pattern,PatternOrigin
+def generateCGI_func_noise(img_ori, pattern , Number_Pattern , batch_size ,stdInputImg,Noise = 0):
+    """
+        generate ghost images from image_ori
+        img_ori : Tensor [batch_size, in_channel, [imsize]]
+        pattern : Tensor [batch_size, Number_Pattern, [imsize]]
+        Number_Pattern : int 
+        imsize : int or turple with length of 2
+        CGIpic is normalized, and target is range from 0 to 255
+        the CGIpic is normalized to mean value 0.25 0.2891
 
+        Other variables in this function 
+        I : intensity [bacth_size, Number_Pattern]
+    """
+    
+    I = torch.sum( pattern * img_ori, (2,3))
+    I = torch.rand_like(I) * 2 * Noise + I
+    PI = torch.sum(
+        I.view(batch_size,Number_Pattern,1,1)* pattern,
+        1) / Number_Pattern
+    Pmean = torch.sum(pattern,1)/Number_Pattern
+    Imean = torch.sum(I,1)/Number_Pattern
+    CGI_img = PI.view_as(img_ori) - Pmean.view_as(img_ori) * Imean.view([batch_size,1,1,1])
+    # MAXCGIimg = torch.max(CGI_img,0)
+    # CGI_img = CGI_img / torch.max(CGI_img,0)
+    CGI_img = (CGI_img - torch.mean(CGI_img) + 0.5)/torch.std(CGI_img)* stdInputImg
+    
+    return CGI_img
+
+    
 def generateCGI_func(img_ori, pattern , Number_Pattern , batch_size ,stdInputImg):
     """
         generate ghost images from image_ori
@@ -109,6 +138,7 @@ def generateCGI_func(img_ori, pattern , Number_Pattern , batch_size ,stdInputImg
     CGI_img = (CGI_img - torch.mean(CGI_img) + 0.5)/torch.std(CGI_img)* stdInputImg
     
     return CGI_img
+
 def SavingModel(model,optimizer,epoch,TrainingLosses,MINloss):
     if not os.path.isdir(SaveModelFile):
         os.mkdir(SaveModelFile)
@@ -180,12 +210,15 @@ def main():
             testingLoader   = LoadData(imsize=imsize , train = False)
             model.zero_grad()
             test_loss  = []
-            for batchNum , (data, target) in enumerate(trainingLoader):
+            for batchNum , (data, target) in enumerate(testingLoader):
                 model.zero_grad()
                 input_image = data.to(device)
                 Patterns = model(PatternOrigin)
                 stdInputImg = torch.std(input_image)
-                CGI_image = generateCGI_func(input_image, Patterns, Number_Pattern,batch_size,stdInputImg)
+                if Noise > 0:
+                    CGI_image = generateCGI_func_noise(input_image, Patterns, Number_Pattern,batch_size,stdInputImg,Noise)
+                else:
+                    CGI_image = generateCGI_func(input_image, Patterns, Number_Pattern,batch_size,stdInputImg)
                 npySave('Patterns.npy',Patterns)
                 npySave('PatternOrigin.npy',PatternOrigin)
                 npySave('input_image.npy',input_image)
@@ -196,12 +229,8 @@ def main():
 
                 plt.subplot(2,1,1)
                 plt.imshow(input_image.to('cpu').detach().numpy()[0,0,:,:])
-                print(torch.max(input_image))
-                print(torch.min(input_image))
                 plt.subplot(2,1,2)
                 plt.imshow(CGI_image.to('cpu').detach().numpy()[0,0,:,:])
-                print(torch.max(CGI_image))
-                print(torch.min(CGI_image))
                 plt.show()
                 showx = 3
                 showy = 3
