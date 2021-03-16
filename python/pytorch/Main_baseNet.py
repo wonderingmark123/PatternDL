@@ -62,10 +62,12 @@ def BasicSettings():
     global imsize ,batch_size,num_works
     imsize = imsize*2 if (len(imsize)==1) else imsize
     if TestMODE:
+
         print('testing mode now!')
         batch_size,num_works = 1,0
     print("num_works: {:}, batch_size: {:}, kernel size: {:}".format(num_works,batch_size,kernel_size))
     print('loading pattern: {:}'.format(PatternFileName))
+
     PatternOrigin = np.load(PatternFileName)
     PatternShape = np.shape(PatternOrigin)
     if len(PatternShape)==3:
@@ -92,11 +94,9 @@ def generateCGI_func_noise(img_ori, pattern , Number_Pattern , batch_size ,stdIn
         imsize : int or turple with length of 2
         CGIpic is normalized, and target is range from 0 to 255
         the CGIpic is normalized to mean value 0.25 0.2891
-
         Other variables in this function 
         I : intensity [bacth_size, Number_Pattern]
     """
-    
     I = torch.sum( pattern * img_ori, (2,3))
     I = torch.rand_like(I) * 2 * Noise + I
     PI = torch.sum(
@@ -210,7 +210,7 @@ def main():
             testingLoader   = LoadData(imsize=imsize , train = False)
             model.zero_grad()
             test_loss  = []
-            for batchNum , (data, target) in enumerate(testingLoader):
+            for batchNum , (data, target) in enumerate(trainingLoader):
                 model.zero_grad()
                 input_image = data.to(device)
                 Patterns = model(PatternOrigin)
