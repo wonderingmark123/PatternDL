@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import os
-from torch import nn
 import matplotlib.pyplot as plt
 from torch.utils.data.dataloader import DataLoader
 
@@ -20,19 +19,19 @@ momentum      = torch.tensor(8e-1)  # momentum for optimizer
 decay         = torch.tensor(1e-6)  # weight decay for regularisation
 num_works     = 3                   # setting in DataLoader Default: 0
 random_seed   = 42
-in_channels   = 1                   # 1 for grey, 3 for PIL
+in_channels   = 62                   # 1 for grey, 3 for PIL
 kernel_size   = 10                   # kenel_size for conv layers
 ONEloss       = 'mean'                # reduce for loss function
 
 saving_best   = True
 Load_model    = True
-MNISTsaveFolder = 'D:\\study\\PatternDL\\python\\data'
-SaveModelFile = 'D:\\study\\PatternDL\\python\\data\\Net_Layers2_pink_beta0005_imsize112_kernel10_rotate_noise'
+MNISTsaveFolder = 'D:\study\DLpattern\PatternDL\python\data'
+SaveModelFile = 'D:\\study\\PatternDL\\python\\data\\Net_Layers2_pink_beta0005_imsize112_kernel10_rotate_inChannel62'
 PatternFileName= 'PatternPink.npy'
 datamean      = 0.5
 datastd       = 0.5
 TestMODE      = True
-Noise         = 0.03                   # ratio of noise for intensity
+Noise         = 0                   # ratio of noise for intensity
 #--------------------------------------------------
 
 def LoadData(imsize=[54,98],train = True):
@@ -40,11 +39,11 @@ def LoadData(imsize=[54,98],train = True):
     # data_set = DealDataset(imsize=imsize)
     Trans    = trasnFcn(imsize,datamean = datamean, datastd = datastd)
     if train:
-        data_set = MNIST(root=MNISTsaveFolder, train=True, transform=Trans , download=True)
+        data_set = MNIST(root=MNISTsaveFolder, train=True, transform=Trans , download=False)
     else:
         data_set = MNIST(root=MNISTsaveFolder, train=False, transform=Trans)
     
-    dataLoader = DataLoader(dataset= data_set,batch_size=batch_size, shuffle = True, num_workers=num_works)
+    dataLoader = DataLoader(dataset= data_set,batch_size=batch_size, shuffle = True, num_workers=num_works,drop_last=True)
     return dataLoader
 
 def Training(trainingLoader,device,model):
