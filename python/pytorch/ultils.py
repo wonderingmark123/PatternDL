@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as F
+from torch.utils.data.dataloader import DataLoader
 
 from torchvision.datasets import MNIST
 class DealDataset(Dataset):
@@ -75,3 +76,91 @@ def ImportOriData(fileFolder="D:\\study\\PatternDL\\python\\data"
     return training_input
 def imageShow(Image):
     plt.imshow(Image)
+def LoadModel(model,SaveModelFile):
+    state  = torch.load(os.path.join(SaveModelFile,'Modelpara.pth'))
+    model.load_state_dict(state['net'])
+    epoch               = state['epoch']
+    epochTrainingLoss   = state['TrainingLosses']
+    MINloss             = state['MINloss']
+    return model,epoch,epochTrainingLoss,MINloss
+def npySave(FileName,tensor,SaveModelFile):
+    np.save(os.path.join(SaveModelFile,FileName),tensor.to('cpu').detach().numpy())
+def generateCGI_func_noise(img_ori, pattern , Number_Pattern , batch_size ,stdInputImg,Noise = 0):
+    """
+        generate ghost images from image_ori
+        img_ori : Tensor [batch_size, in_channel, [imsize]]
+        pattern : Tensor [batch_size, Number_Pattern, [imsize]]
+        Number_Pattern : int 
+        imsize : int or turple with length of 2
+        CGIpic is normalized, and target is range from 0 to 255
+        the CGIpic is normalized to mean value 0.25 0.2891
+        Other variables in this function 
+        I : intensity [bacth_size, Number_Pattern]
+    """
+    I = torch.sum( pattern * img_ori, (2,3))
+    I = torch.rand_like(I) * 2 * Noise + I
+    PI = torch.sum(
+        I.view(batch_size,Number_Pattern,1,1)* pattern,
+        1) / Number_Pattern
+    Pmean = torch.sum(pattern,1)/Number_Pattern
+    Imean = torch.sum(I,1)/Number_Pattern
+    CGI_img = PI.view_as(img_ori) - Pmean.view_as(img_ori) * Imean.view([batch_size,1,1,1])
+    # MAXCGIimg = torch.max(CGI_img,0)
+    # CGI_img = CGI_img / torch.max(CGI_img,0)
+    CGI_img = (CGI_img - torch.mean(CGI_img) + 0.5)/torch.std(CGI_img)* stdInputImg
+    
+    return CGI_img
+
+    
+def generateCGI_func(img_ori, pattern , Number_Pattern , batch_size ,stdInputImg):
+    """
+        generate ghost images from image_ori
+        img_ori : Tensor [batch_size, in_channel, [imsize]]
+        pattern : Tensor [batch_size, Number_Pattern, [imsize]]
+        Number_Pattern : int 
+        imsize : int or turple with length of 2
+        CGIpic is normalized, and target is range from 0 to 255
+        the CGIpic is normalized to mean value 0.25 0.2891
+
+        Other variables in this function 
+        I : intensity [bacth_size, Number_Pattern]
+    """
+    
+    I = torch.sum( pattern * img_ori, (2,3))
+    PI = torch.sum(
+        I.view(batch_size,Number_Pattern,1,1)* pattern,
+        1) / Number_Pattern
+    Pmean = torch.sum(pattern,1)/Number_Pattern
+    Imean = torch.sum(I,1)/Number_Pattern
+    CGI_img = PI.view_as(img_ori) - Pmean.view_as(img_ori) * Imean.view([batch_size,1,1,1])
+    # MAXCGIimg = torch.max(CGI_img,0)
+    # CGI_img = CGI_img / torch.max(CGI_img,0)
+    CGI_img = (CGI_img - torch.mean(CGI_img) + 0.5)/torch.std(CGI_img)* stdInputImg
+    
+    return CGI_img
+def LoadData(MNISTsaveFolder,imsize=[54,98],train = True,batch_size=32,num_works=4):
+    # original image size is [28,28]
+    # data_set = DealDataset(imsize=imsize)
+    datamean      = 0.5
+    datastd       = 0.5
+    Trans    = trasnFcn(imsize,datamean = datamean, datastd = datastd)
+    if train:
+        data_set = MNIST(root=MNISTsaveFolder, train=True, transform=Trans , download=False)
+    else:
+        data_set = MNIST(root=MNISTsaveFolder, train=False, transform=Trans)
+    
+    dataLoader = DataLoader(dataset= data_set,batch_size=batch_size, shuffle = True, num_workers=num_works,drop_last=True)
+    return dataLoader
+
+
+def Training(trainingLoader,device,model):
+    
+    blursigma = (torch.tensor(1))
+    optimizer = torch.optim.SGD( model.parameters() , lr=learning_rate, momentum=momentum, weight_decay=decay)
+    for epoch in range(Epochs):
+        for i , data in enumerate(trainingLoader):
+            input_image = data.to(device)
+            loss = blursigma * input_image
+            loss.backwards()
+            optimizer.step()
+        print('Epoch: {:d}, Blursigma: {:}'.format(epoch,blursigma))

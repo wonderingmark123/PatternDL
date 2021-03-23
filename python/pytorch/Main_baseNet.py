@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import os
 import matplotlib.pyplot as plt
-from torch.utils.data.dataloader import DataLoader
 
 from generateCGI import *
 from ultils import *
@@ -10,7 +9,7 @@ from model import *
 import torch.nn.functional as F
 from torchvision.datasets import MNIST
 #---------------------- parameters -----------------
-batch_size    = 32                 # number of samples per mini-batch
+batch_size    = 16                 # number of samples per mini-batch
 Epochs        = 200                # total epochs for training process
 learning_rate = 5e-3
 imsize        = [112]
@@ -24,39 +23,14 @@ kernel_size   = 10                   # kenel_size for conv layers
 ONEloss       = 'mean'                # reduce for loss function
 
 saving_best   = True
-Load_model    = True
-MNISTsaveFolder = 'D:\study\DLpattern\PatternDL\python\data'
-SaveModelFile = 'D:\\study\\PatternDL\\python\\data\\Net_Layers2_pink_beta0005_imsize112_kernel10_rotate_inChannel62'
-PatternFileName= 'PatternPink.npy'
-datamean      = 0.5
-datastd       = 0.5
-TestMODE      = True
+Load_model    = False
+MNISTsaveFolder = 'D:\\study\\DLpattern\\PatternDL\\python\\data'
+SaveModelFile = 'D:\\study\\DLpattern\\PatternDL\\python\\data\\kaggle_Layers2_pink_beta0005_imsize112_kernel10_inchannel62'
+PatternFileName= 'PatternsTrained.npy'
+
+TestMODE      = False
 Noise         = 0                   # ratio of noise for intensity
 #--------------------------------------------------
-
-def LoadData(imsize=[54,98],train = True):
-    # original image size is [28,28]
-    # data_set = DealDataset(imsize=imsize)
-    Trans    = trasnFcn(imsize,datamean = datamean, datastd = datastd)
-    if train:
-        data_set = MNIST(root=MNISTsaveFolder, train=True, transform=Trans , download=False)
-    else:
-        data_set = MNIST(root=MNISTsaveFolder, train=False, transform=Trans)
-    
-    dataLoader = DataLoader(dataset= data_set,batch_size=batch_size, shuffle = True, num_workers=num_works,drop_last=True)
-    return dataLoader
-
-def Training(trainingLoader,device,model):
-    
-    blursigma = (torch.tensor(1))
-    optimizer = torch.optim.SGD( model.parameters() , lr=learning_rate, momentum=momentum, weight_decay=decay)
-    for epoch in range(Epochs):
-        for i , data in enumerate(trainingLoader):
-            input_image = data.to(device)
-            loss = blursigma * input_image
-            loss.backwards()
-            optimizer.step()
-        print('Epoch: {:d}, Blursigma: {:}'.format(epoch,blursigma))
 def BasicSettings():
     global imsize ,batch_size,num_works
     imsize = imsize*2 if (len(imsize)==1) else imsize
@@ -84,59 +58,6 @@ def BasicSettings():
 
     print("Device: ",device,' Pattern Number: {:d} Beta: {:f}'.format(int(Number_Pattern),beta))
     return device ,Number_Pattern,PatternOrigin
-def generateCGI_func_noise(img_ori, pattern , Number_Pattern , batch_size ,stdInputImg,Noise = 0):
-    """
-        generate ghost images from image_ori
-        img_ori : Tensor [batch_size, in_channel, [imsize]]
-        pattern : Tensor [batch_size, Number_Pattern, [imsize]]
-        Number_Pattern : int 
-        imsize : int or turple with length of 2
-        CGIpic is normalized, and target is range from 0 to 255
-        the CGIpic is normalized to mean value 0.25 0.2891
-        Other variables in this function 
-        I : intensity [bacth_size, Number_Pattern]
-    """
-    I = torch.sum( pattern * img_ori, (2,3))
-    I = torch.rand_like(I) * 2 * Noise + I
-    PI = torch.sum(
-        I.view(batch_size,Number_Pattern,1,1)* pattern,
-        1) / Number_Pattern
-    Pmean = torch.sum(pattern,1)/Number_Pattern
-    Imean = torch.sum(I,1)/Number_Pattern
-    CGI_img = PI.view_as(img_ori) - Pmean.view_as(img_ori) * Imean.view([batch_size,1,1,1])
-    # MAXCGIimg = torch.max(CGI_img,0)
-    # CGI_img = CGI_img / torch.max(CGI_img,0)
-    CGI_img = (CGI_img - torch.mean(CGI_img) + 0.5)/torch.std(CGI_img)* stdInputImg
-    
-    return CGI_img
-
-    
-def generateCGI_func(img_ori, pattern , Number_Pattern , batch_size ,stdInputImg):
-    """
-        generate ghost images from image_ori
-        img_ori : Tensor [batch_size, in_channel, [imsize]]
-        pattern : Tensor [batch_size, Number_Pattern, [imsize]]
-        Number_Pattern : int 
-        imsize : int or turple with length of 2
-        CGIpic is normalized, and target is range from 0 to 255
-        the CGIpic is normalized to mean value 0.25 0.2891
-
-        Other variables in this function 
-        I : intensity [bacth_size, Number_Pattern]
-    """
-    
-    I = torch.sum( pattern * img_ori, (2,3))
-    PI = torch.sum(
-        I.view(batch_size,Number_Pattern,1,1)* pattern,
-        1) / Number_Pattern
-    Pmean = torch.sum(pattern,1)/Number_Pattern
-    Imean = torch.sum(I,1)/Number_Pattern
-    CGI_img = PI.view_as(img_ori) - Pmean.view_as(img_ori) * Imean.view([batch_size,1,1,1])
-    # MAXCGIimg = torch.max(CGI_img,0)
-    # CGI_img = CGI_img / torch.max(CGI_img,0)
-    CGI_img = (CGI_img - torch.mean(CGI_img) + 0.5)/torch.std(CGI_img)* stdInputImg
-    
-    return CGI_img
 
 def SavingModel(model,optimizer,epoch,TrainingLosses,MINloss):
     if not os.path.isdir(SaveModelFile):
@@ -167,24 +88,15 @@ def SavingModel(model,optimizer,epoch,TrainingLosses,MINloss):
       }
     # shutil.copytree(os.path.abspath(__file__),SaveModelFile)
     torch.save(state,os.path.join(SaveModelFile,'Modelpara.pth'))
-def LoadModel(model):
-    state  = torch.load(os.path.join(SaveModelFile,'Modelpara.pth'))
-    model.load_state_dict(state['net'])
-    epoch               = state['epoch']
-    epochTrainingLoss   = state['TrainingLosses']
-    MINloss             = state['MINloss']
-    return model,epoch,epochTrainingLoss,MINloss
-def npySave(FileName,tensor):
-    np.save(os.path.join(SaveModelFile,FileName),tensor.to('cpu').detach().numpy())
 
 def main():
     
     device,Number_Pattern,PatternOrigin = BasicSettings()
-    trainingLoader  = LoadData(imsize=imsize , train = True)
+    trainingLoader  = LoadData(MNISTsaveFolder,imsize=imsize , train = True,batch_size=batch_size,num_works=num_works)
     
     # model = CONVPatternNetBASE(Number_Pattern ,in_channels= in_channels,kernel_size= kernel_size)
-    model = CONVPatternNetMoreLayer(Number_Pattern,int(Number_Pattern/2) ,in_channels= in_channels,kernel_size= kernel_size)
-    
+    # model = CONVPatternNetMoreLayer(Number_Pattern,int(Number_Pattern/2) ,in_channels= in_channels,kernel_size= kernel_size)
+    model = CONVPatternNetOnekernel(Number_Pattern ,kernel_size= kernel_size,NumLayers = 2)
     # model = CONVPatternNet3kernel(Number_Pattern ,in_channels= in_channels,kernel_size= kernel_size)
     MINloss ,epochNow = 1e5,0
     MINtestLoss = 1e5
@@ -192,7 +104,7 @@ def main():
 
     # load model
     if Load_model or TestMODE:
-        model,epochNow,epochTrainingLoss,MINloss = LoadModel(model)
+        model,epochNow,epochTrainingLoss,MINloss = LoadModel(model,SaveModelFile)
     model,PatternOrigin = model.to(device),PatternOrigin.float().to(device)
     optimizer = torch.optim.SGD( model.parameters() , lr=learning_rate, momentum=momentum, weight_decay=decay)
 
@@ -218,9 +130,9 @@ def main():
                     CGI_image = generateCGI_func_noise(input_image, Patterns, Number_Pattern,batch_size,stdInputImg,Noise)
                 else:
                     CGI_image = generateCGI_func(input_image, Patterns, Number_Pattern,batch_size,stdInputImg)
-                npySave('Patterns.npy',Patterns)
-                npySave('PatternOrigin.npy',PatternOrigin)
-                npySave('input_image.npy',input_image)
+                npySave('Patterns.npy',Patterns,SaveModelFile)
+                npySave('PatternOrigin.npy',PatternOrigin,SaveModelFile)
+                npySave('input_image.npy',input_image,SaveModelFile)
                 
                 loss = F.mse_loss(input_image,CGI_image,reduction=ONEloss)
                 test_loss.append(loss.item())

@@ -136,6 +136,73 @@ class CONVPatternNet3kernel(nn.Module):
         #     x = self.relu(x)
 
         return self.drop(x)
+class CONVPatternNetOnekernel(nn.Module):
+    def __init__(self, Number_Pattern ,kernel_size = 3,NumLayers = 5):
+        """
+            Only one kernel is applied in each layer
+        """
+        super(CONVPatternNetOnekernel , self).__init__()
+        numREMOVE = int((kernel_size - 1)*NumLayers/2)
+        if( numREMOVE %2==0):
+            self.pad = nn.ReflectionPad2d(padding=(numREMOVE, numREMOVE, numREMOVE, numREMOVE))
+        else:
+            self.pad = nn.ReflectionPad2d(padding=(numREMOVE, numREMOVE, numREMOVE, numREMOVE))
+        self.relu = nn.ReLU()
+        layers = (nn.Conv2d(in_channels= 1 ,kernel_size= kernel_size, out_channels= 1 ),
+            nn.BatchNorm2d(num_features= 1 ),
+            self.relu)*NumLayers
+        # self.layers = nn.Sequential(
+        #     nn.Conv2d(in_channels= Number_Pattern ,kernel_size= kernel_size, out_channels= Number_Pattern ),
+        #     nn.BatchNorm2d(num_features= Number_Pattern ),
+        #     nn.Conv2d(in_channels= Number_Pattern ,kernel_size= kernel_size, out_channels= Number_Pattern ),
+        #     nn.BatchNorm2d(num_features= Number_Pattern ),
+        #     nn.Conv2d(in_channels= Number_Pattern ,kernel_size= kernel_size, out_channels= Number_Pattern ),
+        #     nn.BatchNorm2d(num_features= Number_Pattern ),
+        #     nn.Conv2d(in_channels= Number_Pattern ,kernel_size= kernel_size, out_channels= Number_Pattern ),
+        #     nn.BatchNorm2d(num_features= Number_Pattern ),
+        # )
+        self.layers = nn.Sequential(*layers)
+        self.Channel = Number_Pattern
+        # self.drop = nn.Dropout(0.5)
+    def forward(self,x):
+        """
+            :param x: Input data of shape 
+            [batch_size, in_channels, [imsize]]
+
+            :return: Output data of shape
+            [batch_size, Number_Pattern, [imsize]]
+        """
+        # x = self.pad(x)
+        # x = self.conv1(x)
+        # x = self.bn1(x)
+        # x = self.relu(x)
+        # x = self.conv2(x)
+        # x = self.bn2(x)
+        # x = self.relu(x)
+        
+        # x = self.conv3(x)
+        # x = self.bn3(x)
+        # x = self.relu(x)
+
+        # x = self.conv4(x)
+        # x = self.bn4(x)
+        # x = self.relu(x)
+
+        # x = self.conv5(x)
+        # x = self.bn5(x)
+        # x = self.relu(x)
+        # for i in range(0,self.layers ):
+        #     x = self.convMore[i](x)
+        #     x = self.bnMore[i](x)
+        #     x = self.relu(x)
+        z = torch.ones_like(x)
+        x = self.pad(x)
+        
+        for i in range(0,self.Channel):
+            z[:,i:i+1,:,:] = self.layers(x[:,i:i+1,:,:])
+        # x = self.pad(x)
+        # x = self.layers(x)
+        return z
 
 
 class BCNN(nn.Module):
