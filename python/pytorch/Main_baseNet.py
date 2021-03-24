@@ -2,12 +2,10 @@ import numpy as np
 import torch
 import os
 import matplotlib.pyplot as plt
-
 from generateCGI import *
 from ultils import *
 from model import *
 import torch.nn.functional as F
-from torchvision.datasets import MNIST
 #---------------------- parameters -----------------
 batch_size    = 16                 # number of samples per mini-batch
 Epochs        = 200                # total epochs for training process
@@ -28,6 +26,7 @@ MNISTsaveFolder = 'D:\\study\\DLpattern\\PatternDL\\python\\data'
 SaveModelFile = 'D:\\study\\DLpattern\\PatternDL\\python\\data\\kaggle_Layers2_pink_beta0005_imsize112_kernel10_inchannel62'
 PatternFileName= 'PatternsTrained.npy'
 
+torch.backends.cudnn.benchmark = True
 TestMODE      = False
 Noise         = 0                   # ratio of noise for intensity
 #--------------------------------------------------

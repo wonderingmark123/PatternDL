@@ -148,8 +148,8 @@ class CONVPatternNetOnekernel(nn.Module):
         else:
             self.pad = nn.ReflectionPad2d(padding=(numREMOVE, numREMOVE, numREMOVE, numREMOVE))
         self.relu = nn.ReLU()
-        layers = (nn.Conv2d(in_channels= 1 ,kernel_size= kernel_size, out_channels= 1 ),
-            nn.BatchNorm2d(num_features= 1 ),
+        layers = (nn.Conv2d(in_channels= Number_Pattern ,kernel_size= kernel_size, out_channels= Number_Pattern,groups=Number_Pattern ),
+            nn.BatchNorm2d(num_features= Number_Pattern ),
             self.relu)*NumLayers
         # self.layers = nn.Sequential(
         #     nn.Conv2d(in_channels= Number_Pattern ,kernel_size= kernel_size, out_channels= Number_Pattern ),
@@ -195,14 +195,14 @@ class CONVPatternNetOnekernel(nn.Module):
         #     x = self.convMore[i](x)
         #     x = self.bnMore[i](x)
         #     x = self.relu(x)
-        z = torch.ones_like(x)
+        # z = torch.ones_like(x)
         x = self.pad(x)
         
-        for i in range(0,self.Channel):
-            z[:,i:i+1,:,:] = self.layers(x[:,i:i+1,:,:])
+        # for i in range(0,self.Channel):
+        #     z[:,i:i+1,:,:] = self.layers(x[:,i:i+1,:,:])
         # x = self.pad(x)
-        # x = self.layers(x)
-        return z
+        x = self.layers(x)
+        return x
 
 
 class BCNN(nn.Module):
