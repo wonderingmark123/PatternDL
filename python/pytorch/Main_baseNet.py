@@ -1,3 +1,8 @@
+# -----------------Directory settings ------------------------------------------------
+MNISTsaveFolder = 'D:\\study\\DLpattern\\PatternDL\\python\\data'
+SaveModelFile = 'D:\\study\\DLpattern\\PatternDL\\python\\data\\kaggle_Layers2_pink_beta0005_imsize112_kernel10_inchannel62'
+PatternFileName= 'PatternsTrained.npy'
+# ----------------------------------------------------------------------------------------------
 import numpy as np
 import torch
 import os
@@ -22,9 +27,6 @@ ONEloss       = 'mean'                # reduce for loss function
 
 saving_best   = True
 Load_model    = False
-MNISTsaveFolder = 'D:\\study\\DLpattern\\PatternDL\\python\\data'
-SaveModelFile = 'D:\\study\\DLpattern\\PatternDL\\python\\data\\kaggle_Layers2_pink_beta0005_imsize112_kernel10_inchannel62'
-PatternFileName= 'PatternsTrained.npy'
 
 torch.backends.cudnn.benchmark = True
 TestMODE      = False
@@ -170,7 +172,7 @@ def main():
             train_losses.append(loss.item())
             
         epochTrainingLoss.append(np.mean(train_losses))
-        if epochTrainingLoss[-1] < MINloss and saving_best and batch > 1000:
+        if epochTrainingLoss[-1] < MINloss and saving_best:
                 MINloss = epochTrainingLoss[-1]
                 print("Epoch: {:}, saving the model to {:}".format(epoch,SaveModelFile))
                 SavingModel(model,optimizer,epoch,epochTrainingLoss,MINloss)
