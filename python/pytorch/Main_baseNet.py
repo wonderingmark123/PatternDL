@@ -1,8 +1,9 @@
 # -----------------Directory settings ------------------------------------------------
 MNISTsaveFolder = 'D:\\study\\DLpattern\\PatternDL\\python\\data'
-SaveModelFile = 'D:\\study\\DLpattern\\PatternDL\\python\\data\\kaggle_Layers2_pink_beta0005_imsize112_kernel10_inchannel62'
-PatternFileName= 'PatternsTrained.npy'
+SaveModelFile = 'D:\study\DLpattern\PatternDL\python\data\Kaggle_Layers5_pink_beta0005_imsize112_kernel10_rotate_oneKerneltest'
+PatternFileName= 'PatternPink99.npy'
 # ----------------------------------------------------------------------------------------------
+from ast import Num
 import numpy as np
 import torch
 import os
@@ -11,30 +12,39 @@ from generateCGI import *
 from ultils import *
 from model import *
 import torch.nn.functional as F
+from tqdm import trange
 #---------------------- parameters -----------------
-batch_size    = 16                 # number of samples per mini-batch
-Epochs        = 200                # total epochs for training process
-learning_rate = 5e-3
-imsize        = [112]
-beta          = 0.005                # sampling rate
-momentum      = torch.tensor(8e-1)  # momentum for optimizer
-decay         = torch.tensor(1e-6)  # weight decay for regularisation
+batch_size    = 8                 # number of samples per mini-batch
 num_works     = 3                   # setting in DataLoader Default: 0
-random_seed   = 42
-in_channels   = 62                   # 1 for grey, 3 for PIL
-kernel_size   = 10                   # kenel_size for conv layers
-ONEloss       = 'mean'                # reduce for loss function
+Epochs        = 200                # total epochs for training process
+torch.backends.cudnn.benchmark = True
 
 saving_best   = True
 Load_model    = False
-
-torch.backends.cudnn.benchmark = True
 TestMODE      = False
+
+imsize        = [112]
+beta          = 0.005                # sampling rate
 Noise         = 0                   # ratio of noise for intensity
+learning_rate = 5e-3
+momentum      = torch.tensor(8e-1)  # momentum for optimizer
+decay         = torch.tensor(1e-6)  # weight decay for regularisation
+
+Layers        = 5
+in_channels   = 0                   # 1 for grey, 3 for PIL
+kernel_size   = 10                   # kenel_size for conv layers
+ONEloss       = 'mean'                # reduce for loss function
+
 #--------------------------------------------------
 def BasicSettings():
-    global imsize ,batch_size,num_works
+    global imsize ,batch_size,num_works,in_channels
     imsize = imsize*2 if (len(imsize)==1) else imsize
+    if len(imsize) == 2:
+        Number_Pattern =int( beta * imsize[0]*imsize[1])
+    else:
+        Number_Pattern =int( beta * imsize**2)
+    if in_channels == 0:
+        in_channels = Number_Pattern
     if TestMODE:
 
         print('testing mode now!')
@@ -51,12 +61,6 @@ def BasicSettings():
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
-    
-    if len(imsize) == 2:
-        Number_Pattern =int( beta * imsize[0]*imsize[1])
-    else:
-        Number_Pattern =int( beta * imsize**2)
-
     print("Device: ",device,' Pattern Number: {:d} Beta: {:f}'.format(int(Number_Pattern),beta))
     return device ,Number_Pattern,PatternOrigin
 
@@ -97,7 +101,7 @@ def main():
     
     # model = CONVPatternNetBASE(Number_Pattern ,in_channels= in_channels,kernel_size= kernel_size)
     # model = CONVPatternNetMoreLayer(Number_Pattern,int(Number_Pattern/2) ,in_channels= in_channels,kernel_size= kernel_size)
-    model = CONVPatternNetOnekernel(Number_Pattern ,kernel_size= kernel_size,NumLayers = 2)
+    model = CONVPatternNetOnekernel(Number_Pattern ,kernel_size= kernel_size,NumLayers = Layers)
     # model = CONVPatternNet3kernel(Number_Pattern ,in_channels= in_channels,kernel_size= kernel_size)
     MINloss ,epochNow = 1e5,0
     MINtestLoss = 1e5
@@ -119,10 +123,10 @@ def main():
         plt.plot(range(len(epochTrainingLoss)),epochTrainingLoss)
         plt.show()
         with torch.no_grad():
-            testingLoader   = LoadData(imsize=imsize , train = False)
+            testingLoader   = LoadData(imsize=imsize , train = False,MNISTsaveFolder = MNISTsaveFolder,batch_size=batch_size,num_works=num_works)
             model.zero_grad()
             test_loss  = []
-            for batchNum , (data, target) in enumerate(trainingLoader):
+            for batchNum , (data, target) in enumerate(testingLoader):
                 model.zero_grad()
                 input_image = data.to(device)
                 Patterns = model(PatternOrigin)

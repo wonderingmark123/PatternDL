@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+import math
 class CONVPatternNetBASE(nn.Module):
     def __init__(self, Number_Pattern ,kernel_size = 6, in_channels = 1 ):
         super(CONVPatternNetBASE , self).__init__()
@@ -40,7 +41,7 @@ class CONVPatternNetBASE(nn.Module):
 class CONVPatternNetMoreLayer(nn.Module):
     def __init__(self, Number_Pattern, Hidden ,kernel_size = 6, in_channels = 1 ):
         super(CONVPatternNetMoreLayer , self).__init__()
-        numREMOVE = int(kernel_size) -1
+        numREMOVE = math.floor(kernel_size) 
         if( kernel_size %2==0):
             self.pad = nn.ReflectionPad2d(padding=(numREMOVE, numREMOVE, numREMOVE, numREMOVE))
         else:
@@ -144,7 +145,7 @@ class CONVPatternNetOnekernel(nn.Module):
         super(CONVPatternNetOnekernel , self).__init__()
         numREMOVE = int((kernel_size - 1)*NumLayers/2)
         if( numREMOVE %2==0):
-            self.pad = nn.ReflectionPad2d(padding=(numREMOVE, numREMOVE, numREMOVE, numREMOVE))
+            self.pad = nn.ReflectionPad2d(padding=(numREMOVE+1, numREMOVE, numREMOVE+1, numREMOVE))
         else:
             self.pad = nn.ReflectionPad2d(padding=(numREMOVE, numREMOVE, numREMOVE, numREMOVE))
         self.relu = nn.ReLU()

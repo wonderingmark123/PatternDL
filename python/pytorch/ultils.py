@@ -40,7 +40,7 @@ class DealDataset(Dataset):
         return self.len
 
 def trasnFcn(imsize = [54,98],datamean = 0.5,
-datastd = 0.5 ):
+    datastd = 0.5 ):
     # crop     = transforms.CenterCrop(imsize)
     resizeIMG  = transforms.Resize(size = imsize)
     # pad      = transforms.Pad((0, 0, 1, 1), fill=0)
