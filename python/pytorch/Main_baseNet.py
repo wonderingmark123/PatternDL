@@ -1,13 +1,15 @@
 # -----------------Directory settings ------------------------------------------------
 MNISTsaveFolder = 'D:\\study\\DLpattern\\PatternDL\\python\\data'
-SaveModelFile = 'D:\study\DLpattern\PatternDL\python\data\Kaggle_Layers5_pink_beta0005_imsize112_kernel10_rotate_oneKerneltest'
-PatternFileName= 'PatternPink99.npy'
+SaveModelFile = 'D:\study\DLpattern\PatternDL\python\data\Kaggle_Layers10_pink_beta0005_imsize112_kernel10_Oripattern_oneKernel'
+PatternFileName= '../../PatternsTrained.npy'
+LoadModelFile = SaveModelFile
 # ----------------------------------------------------------------------------------------------
 from ast import Num
 import numpy as np
 import torch
 import os
 import matplotlib.pyplot as plt
+from tqdm.std import tqdm
 from generateCGI import *
 from ultils import *
 from model import *
@@ -30,11 +32,11 @@ learning_rate = 5e-3
 momentum      = torch.tensor(8e-1)  # momentum for optimizer
 decay         = torch.tensor(1e-6)  # weight decay for regularisation
 
-Layers        = 5
-in_channels   = 0                   # 1 for grey, 3 for PIL
+Layers        = 10
+in_channels   = 0                   # 1 for grey, 3 for PIL, 0 for all the npy patterns are inputed
 kernel_size   = 10                   # kenel_size for conv layers
 ONEloss       = 'mean'                # reduce for loss function
-
+random_seed   = 42
 #--------------------------------------------------
 def BasicSettings():
     global imsize ,batch_size,num_works,in_channels
@@ -87,8 +89,6 @@ def SavingModel(model,optimizer,epoch,TrainingLosses,MINloss):
         'Load_model'    : Load_model,
         'MNISTsaveFolder' : MNISTsaveFolder,
         'SaveModelFile' : SaveModelFile,
-        'datamean'      : datamean,
-        'datastd'       : datastd,
         'MINloss'       : MINloss
       }
     # shutil.copytree(os.path.abspath(__file__),SaveModelFile)
@@ -101,7 +101,8 @@ def main():
     
     # model = CONVPatternNetBASE(Number_Pattern ,in_channels= in_channels,kernel_size= kernel_size)
     # model = CONVPatternNetMoreLayer(Number_Pattern,int(Number_Pattern/2) ,in_channels= in_channels,kernel_size= kernel_size)
-    model = CONVPatternNetOnekernel(Number_Pattern ,kernel_size= kernel_size,NumLayers = Layers)
+    model = CONVNetFC(Number_Pattern,int(Number_Pattern/2),batch_size,device ,in_channels= in_channels,kernel_size= kernel_size)
+    # model = CONVPatternNetOnekernel(Number_Pattern ,kernel_size= kernel_size,NumLayers = Layers)
     # model = CONVPatternNet3kernel(Number_Pattern ,in_channels= in_channels,kernel_size= kernel_size)
     MINloss ,epochNow = 1e5,0
     MINtestLoss = 1e5
@@ -109,7 +110,7 @@ def main():
 
     # load model
     if Load_model or TestMODE:
-        model,epochNow,epochTrainingLoss,MINloss = LoadModel(model,SaveModelFile)
+        model,epochNow,epochTrainingLoss,MINloss = LoadModel(model,LoadModelFile)
     model,PatternOrigin = model.to(device),PatternOrigin.float().to(device)
     optimizer = torch.optim.SGD( model.parameters() , lr=learning_rate, momentum=momentum, weight_decay=decay)
 
@@ -164,7 +165,7 @@ def main():
     for epoch in range(epochNow,Epochs):
         model.train()
         train_losses = []
-        for batch , (input_image, target) in enumerate(trainingLoader):
+        for batch , (input_image, target) in enumerate(tqdm(trainingLoader)):
             model.zero_grad()
             input_image     = input_image.to(device)
             Patterns        = model(PatternOrigin)

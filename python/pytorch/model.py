@@ -70,6 +70,41 @@ class CONVPatternNetMoreLayer(nn.Module):
         x = self.relu(x)
         return x
 
+class CONVNetFC(nn.Module):
+    def __init__(self, Number_Pattern:int, Hidden:int,BatchSize:int,device ,kernel_size = 6, in_channels = 1, LinearNum: int= 1 ):
+        super(CONVNetFC , self).__init__()
+        numREMOVE = math.floor(kernel_size) -1 
+        if( kernel_size %2==0):
+            self.pad = nn.ReflectionPad2d(padding=(numREMOVE, numREMOVE, numREMOVE, numREMOVE))
+        else:
+            self.pad = nn.ReflectionPad2d(padding=(numREMOVE, numREMOVE, numREMOVE, numREMOVE))
+        self.conv1 = nn.Conv2d(in_channels= in_channels,kernel_size= kernel_size, out_channels= Hidden )
+        self.bn1 = nn.BatchNorm2d(num_features= Hidden)
+        self.relu = nn.ReLU()
+        self.conv2 = nn.Conv2d(in_channels= Hidden,kernel_size= kernel_size, out_channels= Number_Pattern )
+        self.bn2 = nn.BatchNorm2d(num_features= Number_Pattern)
+        self.relu = nn.ReLU()
+        self.FC = nn.Linear(LinearNum,Number_Pattern)
+        self.zero0 = torch.zeros([BatchSize,1],device=device)
+    
+    def forward(self,x):
+        """
+            :param x: Input data of shape 
+            [batch_size, in_channels, [imsize]]
+
+            :return: Output data of shape
+            [batch_size, Number_Pattern, [imsize]]
+        """
+        x = self.pad(x)
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = self.relu(x)
+        b = self.FC(self.zero0)
+        x = x*b.view([*b.shape,1,1])
+        return x
 
 
 class CONVPatternNet3kernel(nn.Module):
