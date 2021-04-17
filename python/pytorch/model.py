@@ -39,13 +39,15 @@ class CONVPatternNetBASE(nn.Module):
         return x
 
 class CONVPatternNetMoreLayer(nn.Module):
-    def __init__(self, Number_Pattern, Hidden ,kernel_size = 6, in_channels = 1 ):
+    def __init__(self, Number_Pattern, Hidden ,kernel_size = 10, in_channels = 1 ,numMove = None):
         super(CONVPatternNetMoreLayer , self).__init__()
         numREMOVE = math.floor(kernel_size) 
         if( kernel_size %2==0):
             self.pad = nn.ReflectionPad2d(padding=(numREMOVE, numREMOVE, numREMOVE, numREMOVE))
         else:
             self.pad = nn.ReflectionPad2d(padding=(numREMOVE, numREMOVE, numREMOVE, numREMOVE))
+        if not (numMove is None):
+            self.pad = nn.ReflectionPad2d(padding=numMove)
         self.conv1 = nn.Conv2d(in_channels= in_channels,kernel_size= kernel_size, out_channels= Hidden )
         self.bn1 = nn.BatchNorm2d(num_features= Hidden)
         self.relu = nn.ReLU()
