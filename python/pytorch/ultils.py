@@ -138,16 +138,16 @@ def generateCGI_func(img_ori, pattern , Number_Pattern , batch_size ,stdInputImg
     CGI_img = (CGI_img - torch.mean(CGI_img) + 0.5)/torch.std(CGI_img)* stdInputImg
     
     return CGI_img
-def LoadData(MNISTsaveFolder,imsize=[54,98],train = True,batch_size=32,num_works=4):
+def LoadData(MNISTsaveFolder,imsize=[54,98],train = True,batch_size=32,num_works=0,DataSetName = MNIST):
     # original image size is [28,28]
     # data_set = DealDataset(imsize=imsize)
     datamean      = 0.5
     datastd       = 0.5
     Trans    = trasnFcn(imsize,datamean = datamean, datastd = datastd)
     if train:
-        data_set = MNIST(root=MNISTsaveFolder, train=True, transform=Trans , download=False)
+        data_set = DataSetName(root=MNISTsaveFolder, train=True, transform=Trans , download=False)
     else:
-        data_set = MNIST(root=MNISTsaveFolder, train=False, transform=Trans)
+        data_set = DataSetName(root=MNISTsaveFolder, train=False, transform=Trans)
     
     dataLoader = DataLoader(dataset= data_set,batch_size=batch_size, shuffle = True, num_workers=num_works,drop_last=True)
     return dataLoader

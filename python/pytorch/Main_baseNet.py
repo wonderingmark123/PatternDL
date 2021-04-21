@@ -1,7 +1,7 @@
 # -----------------Directory settings ------------------------------------------------
 MNISTsaveFolder = 'D:\\study\\DLpattern\\PatternDL\\python\\data'
-SaveModelFile = 'D:\study\DLpattern\PatternDL\python\data\Kaggle_pinkTrained_beta0005_imsize112_kernel10_FC'
-PatternFileName= 'PatternsTrained.npy'
+SaveModelFile = 'D:\study\DLpattern\PatternDL\python\data\Kaggle_Layers2_pink_beta0005_imsize112_kernel10_First'
+PatternFileName= 'D:\study\DLpattern\PatternDL\PatternPink9.npy'
 LoadModelFile = SaveModelFile
 # ----------------------------------------------------------------------------------------------
 from ast import Num
@@ -15,6 +15,7 @@ from ultils import *
 from model import *
 import torch.nn.functional as F
 from tqdm import trange
+from torchvision.datasets import KMNIST,MNIST
 #---------------------- parameters -----------------
 batch_size    = 8                 # number of samples per mini-batch
 num_works     = 1                   # setting in DataLoader Default: 0
@@ -23,7 +24,7 @@ torch.backends.cudnn.benchmark = True
 
 saving_best   = True
 Load_model    = False
-TestMODE      = False
+TestMODE      = True
 
 imsize        = [112]
 beta          = 0.005                # sampling rate
@@ -33,10 +34,11 @@ momentum      = torch.tensor(8e-1)  # momentum for optimizer
 decay         = torch.tensor(1e-6)  # weight decay for regularisation
 
 Layers        = 10
-in_channels   = 0                   # 1 for grey, 3 for PIL, 0 for all the npy patterns are inputed
+in_channels   = 1                   # 1 for grey, 3 for PIL, 0 for all the npy patterns are inputed
 kernel_size   = 10                   # kenel_size for conv layers
 ONEloss       = 'mean'                # reduce for loss function
 random_seed   = 42
+DataLoaderName = KMNIST
 paddingNum    =  (9,9,9,9)
 #--------------------------------------------------
 def BasicSettings():
@@ -59,6 +61,9 @@ def BasicSettings():
     PatternShape = np.shape(PatternOrigin)
     if len(PatternShape)==3:
         PatternOrigin = torch.from_numpy(PatternOrigin)[0:in_channels,0:imsize[0],0:imsize[1]] * torch.ones([batch_size,in_channels,imsize[0],imsize[1]])
+    elif len(PatternShape)==4:
+        PatternOrigin = torch.from_numpy(PatternOrigin)[0,0:in_channels,0:imsize[0],0:imsize[1]] * torch.ones([1,batch_size,in_channels,imsize[0],imsize[1]])
+        PatternOrigin.squeeze_(0)
     else:
         PatternOrigin = torch.from_numpy(PatternOrigin)[0:imsize[0],0:imsize[1]] * torch.ones([batch_size,in_channels,imsize[0],imsize[1]])
     use_cuda = torch.cuda.is_available()
@@ -98,7 +103,13 @@ def SavingModel(model,optimizer,epoch,TrainingLosses,MINloss):
 def main():
     
     device,Number_Pattern,PatternOrigin = BasicSettings()
-    trainingLoader  = LoadData(MNISTsaveFolder,imsize=imsize , train = True,batch_size=batch_size,num_works=num_works)
+    trainingLoader  = LoadData(
+        MNISTsaveFolder,
+        imsize=imsize , 
+        train = True,
+        batch_size=batch_size,
+        num_works=num_works,
+        DataLoaderName = KMNIST)
     
     # model = CONVPatternNetBASE(Number_Pattern ,in_channels= in_channels,kernel_size= kernel_size)
     model = CONVPatternNetMoreLayer(Number_Pattern,Number_Pattern ,in_channels= in_channels,kernel_size= kernel_size ,numMove = paddingNum)
