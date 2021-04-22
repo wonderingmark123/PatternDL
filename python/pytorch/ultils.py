@@ -145,7 +145,7 @@ def LoadData(MNISTsaveFolder,imsize=[54,98],train = True,batch_size=32,num_works
     datastd       = 0.5
     Trans    = trasnFcn(imsize,datamean = datamean, datastd = datastd)
     if train:
-        data_set = DataSetName(root=MNISTsaveFolder, train=True, transform=Trans , download=False)
+        data_set = DataSetName(root=MNISTsaveFolder, train=True, transform=Trans , download=True)
     else:
         data_set = DataSetName(root=MNISTsaveFolder, train=False, transform=Trans)
     

@@ -1,7 +1,7 @@
 # -----------------Directory settings ------------------------------------------------
 MNISTsaveFolder = 'D:\\study\\DLpattern\\PatternDL\\python\\data'
-SaveModelFile = 'D:\study\DLpattern\PatternDL\python\data\Kaggle_Layers2_pink_beta0005_imsize112_kernel10_First'
-PatternFileName= 'D:\study\DLpattern\PatternDL\PatternPink9.npy'
+SaveModelFile = "D:/study/DLpattern/PatternDL/python/data/NET_Layers2_pink_beta0005_imsize112_kernel10_KMNIST"
+PatternFileName= 'D:/study/DLpattern/PatternDL/python/data/Kaggle_Layers2_pink_beta0005_imsize112_kernel10_First/PatternTrained0005.npy'
 LoadModelFile = SaveModelFile
 # ----------------------------------------------------------------------------------------------
 from ast import Num
@@ -24,7 +24,7 @@ torch.backends.cudnn.benchmark = True
 
 saving_best   = True
 Load_model    = False
-TestMODE      = True
+TestMODE      = False
 
 imsize        = [112]
 beta          = 0.005                # sampling rate
@@ -109,7 +109,7 @@ def main():
         train = True,
         batch_size=batch_size,
         num_works=num_works,
-        DataLoaderName = KMNIST)
+        DataSetName = DataLoaderName)
     
     # model = CONVPatternNetBASE(Number_Pattern ,in_channels= in_channels,kernel_size= kernel_size)
     model = CONVPatternNetMoreLayer(Number_Pattern,Number_Pattern ,in_channels= in_channels,kernel_size= kernel_size ,numMove = paddingNum)
