@@ -1,4 +1,5 @@
 from ast import Num
+
 from typing import Pattern
 from torch.utils.data import Dataset,dataloader,TensorDataset
 from torch.autograd import Variable
@@ -10,7 +11,7 @@ from PIL import Image
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as F
 from torch.utils.data.dataloader import DataLoader
-
+from torch.utils.data import ConcatDataset
 from torchvision.datasets import MNIST
 class DealDataset(Dataset):
     """
@@ -145,7 +146,13 @@ def LoadData(MNISTsaveFolder,imsize=[54,98],train = True,batch_size=32,num_works
     datastd       = 0.5
     Trans    = trasnFcn(imsize,datamean = datamean, datastd = datastd)
     if train:
-        data_set = DataSetName(root=MNISTsaveFolder, train=True, transform=Trans , download=True)
+        if isinstance(DataSetName ,tuple):
+            data_set = []
+            for SUBsetName in DataSetName:
+                data_set.append ( SUBsetName(root=MNISTsaveFolder, train=True, transform=Trans , download=True))
+            data_set = ConcatDataset(data_set)
+        else:
+            data_set = DataSetName(root=MNISTsaveFolder, train=True, transform=Trans , download=True)
     else:
         data_set = DataSetName(root=MNISTsaveFolder, train=False, transform=Trans)
     

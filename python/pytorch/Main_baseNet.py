@@ -1,7 +1,8 @@
 # -----------------Directory settings ------------------------------------------------
 MNISTsaveFolder = 'D:\\study\\DLpattern\\PatternDL\\python\\data'
-SaveModelFile = "D:/study/DLpattern/PatternDL/python/data/NET_Layers2_pink_beta0005_imsize112_kernel10_KMNIST"
-PatternFileName= 'D:/study/DLpattern/PatternDL/python/data/Kaggle_Layers2_pink_beta0005_imsize112_kernel10_First/PatternTrained0005.npy'
+SaveModelFile = "D:/study/DLpattern/PatternDL/python/data/Kaggle_Layers2_pink_beta0005_imsize112_kernel10_KMNIST_Second"
+# PatternFileName= 'D:/study/DLpattern/PatternDL/python/data/Kaggle_Layers2_pink_beta0005_imsize112_kernel10_First/PatternTrained0005.npy'
+PatternFileName = 'D:\\study\\DLpattern\\PatternDL\\python\\data\\Kaggle_Layers2_pink_beta0005_imsize112_kernel10_KMNIST_First\\PatternTrainedKMNIST.npy'
 LoadModelFile = SaveModelFile
 # ----------------------------------------------------------------------------------------------
 from ast import Num
@@ -34,11 +35,11 @@ momentum      = torch.tensor(8e-1)  # momentum for optimizer
 decay         = torch.tensor(1e-6)  # weight decay for regularisation
 
 Layers        = 10
-in_channels   = 1                   # 1 for grey, 3 for PIL, 0 for all the npy patterns are inputed
+in_channels   = 0                   # 1 for grey, 3 for PIL, 0 for all the npy patterns are inputed
 kernel_size   = 10                   # kenel_size for conv layers
 ONEloss       = 'mean'                # reduce for loss function
 random_seed   = 42
-DataLoaderName = KMNIST
+DataLoaderName = (KMNIST,MNIST)
 paddingNum    =  (9,9,9,9)
 #--------------------------------------------------
 def BasicSettings():
@@ -136,7 +137,8 @@ def main():
         plt.plot(range(len(epochTrainingLoss)),epochTrainingLoss)
         plt.show()
         with torch.no_grad():
-            testingLoader   = LoadData(imsize=imsize , train = False,MNISTsaveFolder = MNISTsaveFolder,batch_size=batch_size,num_works=num_works)
+            testingLoader   = LoadData(imsize=imsize , train = False,MNISTsaveFolder = MNISTsaveFolder,batch_size=batch_size,num_works=num_works,
+            DataSetName = DataLoaderName)
             model.zero_grad()
             test_loss  = []
             for batchNum , (data, target) in enumerate(testingLoader):
