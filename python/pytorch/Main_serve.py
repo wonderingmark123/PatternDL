@@ -1,11 +1,12 @@
 # -----------------Directory settings ------------------------------------------------
 MNISTsaveFolder = '..\\data'
-SaveModelFile = "../data/B05_Layers2_pink_beta001_imsize112_kernel10_KandM_Second"
+SaveModelFile = "../data/B05_Layers2_pink_beta002_imsize112_kernel10_KandM_First"
 # PatternFileName= 'D:/study/DLpattern/PatternDL/python/data/Kaggle_Layers2_pink_beta0005_imsize112_kernel10_First/PatternTrained0005.npy'
-PatternFileName = '..\\data\\B05_Layers2_pink_beta001_imsize112_kernel10_KandM_First\\PatternsTrained.npy'
+PatternFileName = '../../PatternPink9.npy'
+# PatternFileName = '../data/B05_Layers2_pink_beta005_imsize112_kernel10_KandM_First/PatternsTrained.npy'
 LoadModelFile = SaveModelFile
 # ----------------------------------------------------------------------------------------------
-from ast import Num
+
 import numpy as np
 import torch
 import os
@@ -18,14 +19,14 @@ import torch.nn.functional as F
 from tqdm import trange
 from torchvision.datasets import KMNIST,MNIST
 #---------------------- parameters -----------------
-batch_size    = 64                 # number of samples per mini-batch
-num_works     = 1                   # setting in DataLoader Default: 0
+batch_size    = 128                 # number of samples per mini-batch
+num_works     = 2                   # setting in DataLoader Default: 0
 Epochs        = 200                # total epochs for training process
 torch.backends.cudnn.benchmark = True
 
 saving_best   = True
 Load_model    = False
-TestMODE      = True
+TestMODE      = False
 
 imsize        = [112]
 beta          = 0.05                # sampling rate
@@ -35,11 +36,13 @@ momentum      = torch.tensor(8e-1)  # momentum for optimizer
 decay         = torch.tensor(1e-6)  # weight decay for regularisation
 
 Layers        = 10
-in_channels   = 0                   # 1 for grey, 3 for PIL, 0 for all the npy patterns are inputed
+in_channels   = 1                   # 1 for grey, 3 for PIL, 0 for all the npy patterns are inputed
 kernel_size   = 10                   # kenel_size for conv layers
 ONEloss       = 'mean'                # reduce for loss function
 random_seed   = 42
 DataLoaderName = MNIST
+# DataLoaderName = (KMNIST,MNIST)
+
 paddingNum    =  (9,9,9,9)
 #--------------------------------------------------
 def BasicSettings():
@@ -117,6 +120,10 @@ def main():
     # model = CONVNetFC(Number_Pattern,int(Number_Pattern/2),batch_size,device ,in_channels= in_channels,kernel_size= kernel_size)
     # model = CONVPatternNetOnekernel(Number_Pattern ,kernel_size= kernel_size,NumLayers = Layers)
     # model = CONVPatternNet3kernel(Number_Pattern ,in_channels= in_channels,kernel_size= kernel_size)
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
+        model = nn.DataParallel(model)
     MINloss ,epochNow = 1e5,0
     MINtestLoss = 1e5
     epochTrainingLoss,epochTestingLoss = [] ,[]
@@ -124,6 +131,8 @@ def main():
     # load model
     if Load_model or TestMODE:
         model,epochNow,epochTrainingLoss,MINloss = LoadModel(model,LoadModelFile)
+        print('Finished load model, current epoch:')
+        print(epochNow)
     model,PatternOrigin = model.to(device),PatternOrigin.float().to(device)
     optimizer = torch.optim.SGD( model.parameters() , lr=learning_rate, momentum=momentum, weight_decay=decay)
 
@@ -176,10 +185,10 @@ def main():
     # --------------------------------------------------------
     
     print('Start training process :)')
-    for epoch in range(epochNow,Epochs):
+    for epoch in trange(epochNow,Epochs):
         model.train()
         train_losses = []
-        for batch , (input_image, target) in enumerate(tqdm(trainingLoader)):
+        for batch , (input_image, target) in enumerate(((trainingLoader))):
             model.zero_grad()
             input_image     = input_image.to(device)
             Patterns        = model(PatternOrigin)
@@ -193,11 +202,11 @@ def main():
         epochTrainingLoss.append(np.mean(train_losses))
         if epochTrainingLoss[-1] < MINloss and saving_best:
                 MINloss = epochTrainingLoss[-1]
-                print("Epoch: {:}, saving the model to {:}".format(epoch,SaveModelFile))
+                
                 SavingModel(model,optimizer,epoch,epochTrainingLoss,MINloss)
         
         
-        print('Epoch: {:d}, Training Loss: {:}.'.format(epoch,epochTrainingLoss[epoch]))
+        
     return 0
 
 

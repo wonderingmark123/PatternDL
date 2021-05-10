@@ -154,7 +154,13 @@ def LoadData(MNISTsaveFolder,imsize=[54,98],train = True,batch_size=32,num_works
         else:
             data_set = DataSetName(root=MNISTsaveFolder, train=True, transform=Trans , download=True)
     else:
-        data_set = DataSetName(root=MNISTsaveFolder, train=False, transform=Trans)
+        if isinstance(DataSetName ,tuple):
+            data_set = []
+            for SUBsetName in DataSetName:
+                data_set.append ( SUBsetName(root=MNISTsaveFolder, train=False, transform=Trans , download=True))
+            data_set = ConcatDataset(data_set)
+        else:
+            data_set = DataSetName(root=MNISTsaveFolder, train=False, transform=Trans)  
     
     dataLoader = DataLoader(dataset= data_set,batch_size=batch_size, shuffle = True, num_workers=num_works,drop_last=True)
     return dataLoader
