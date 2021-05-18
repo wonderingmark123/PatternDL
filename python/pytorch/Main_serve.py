@@ -1,12 +1,12 @@
 # -----------------Directory settings ------------------------------------------------
-MNISTsaveFolder = '..\\data'
-SaveModelFile = "../data/B05_Layers2_pink_beta002_imsize112_kernel10_KandM_First"
+MNISTsaveFolder = '~/run/PatternDL/python/data'
+SaveModelFile = "~/run/PatternDL/python/data/B05_Layers2_pink_beta002_imsize112_kernel10_KandM_First"
 # PatternFileName= 'D:/study/DLpattern/PatternDL/python/data/Kaggle_Layers2_pink_beta0005_imsize112_kernel10_First/PatternTrained0005.npy'
-PatternFileName = '../../PatternPink9.npy'
+PatternFileName = '~/run/PatternDL/python/PatternPink9.npy'
 # PatternFileName = '../data/B05_Layers2_pink_beta005_imsize112_kernel10_KandM_First/PatternsTrained.npy'
 LoadModelFile = SaveModelFile
 # ----------------------------------------------------------------------------------------------
-
+import torch.nn as nn
 import numpy as np
 import torch
 import os
@@ -19,7 +19,7 @@ import torch.nn.functional as F
 from tqdm import trange
 from torchvision.datasets import KMNIST,MNIST
 #---------------------- parameters -----------------
-batch_size    = 128                 # number of samples per mini-batch
+batch_size    = 64                 # number of samples per mini-batch
 num_works     = 2                   # setting in DataLoader Default: 0
 Epochs        = 200                # total epochs for training process
 torch.backends.cudnn.benchmark = True
