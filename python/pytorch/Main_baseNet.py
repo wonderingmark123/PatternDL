@@ -1,8 +1,8 @@
 # -----------------Directory settings ------------------------------------------------
-MNISTsaveFolder = '../data'
-SaveModelFile = "../data/IQSE_Layers2_pink_beta005_imsize112_kernel10_KandM_Second"
-# PatternFileName= 'D:/study/DLpattern/PatternDL/python/data/Kaggle_Layers2_pink_beta0005_imsize112_kernel10_First/PatternTrained0005.npy'
-PatternFileName = '../../PatternPink9.npy'
+MNISTsaveFolder = 'D:/study/DLpattern/PatternDL/python/data'
+SaveModelFile = "../data/B05_Layers2_pink_beta002_imsize112_kernel10_MNIST_Second"
+PatternFileName= 'D:/study/DLpattern/PatternDL/python/data/B05_Layers2_pink_beta002_imsize112_kernel10_MNIST_First/Patterns.npy'
+# PatternFileName = '../../PatternPink9.npy'
 LoadModelFile = SaveModelFile
 # ----------------------------------------------------------------------------------------------
 from ast import Num
@@ -18,28 +18,30 @@ import torch.nn.functional as F
 from tqdm import trange
 from torchvision.datasets import KMNIST,MNIST
 #---------------------- parameters -----------------
-batch_size    = 128                 # number of samples per mini-batch
-num_works     = 4                   # setting in DataLoader Default: 0
-Epochs        = 200                # total epochs for training process
-torch.backends.cudnn.benchmark = True
-MultiGPU = True
-saving_best   = True
+batch_size    = 2                 # number of samples per mini-batch
+num_works     = 0                   # setting in DataLoader Default: 0
+
+saving_best   = False
 Load_model    = False
-TestMODE      = True
+TestMODE      = False
+beta          = 0.02                # sampling rate
+in_channels   = 0                   # 1 for grey, 3 for PIL, 0 for all the npy patterns are inputed
+DataLoaderName = MNIST
 
 imsize        = [112]
-beta          = 0.05                # sampling rate
 Noise         = 0                   # ratio of noise for intensity
 learning_rate = 5e-3
 momentum      = torch.tensor(8e-1)  # momentum for optimizer
 decay         = torch.tensor(1e-6)  # weight decay for regularisation
-
+Epochs        = 200                # total epochs for training process
+torch.backends.cudnn.benchmark = True
+MultiGPU      = True
 Layers        = 10
-in_channels   = 1                   # 1 for grey, 3 for PIL, 0 for all the npy patterns are inputed
+
 kernel_size   = 10                   # kenel_size for conv layers
 ONEloss       = 'mean'                # reduce for loss function
 random_seed   = 42
-DataLoaderName = MNIST
+
 paddingNum    =  (9,9,9,9)
 #--------------------------------------------------
 def BasicSettings():
@@ -184,6 +186,7 @@ def main():
         model.train()
         train_losses = []
         for batch , (input_image, target) in enumerate(tqdm(trainingLoader)):
+            imageShow(input_image[0,0,:,:])
             model.zero_grad()
             input_image     = input_image.to(device)
             Patterns        = model(PatternOrigin)

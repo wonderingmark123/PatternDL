@@ -21,27 +21,29 @@ from torchvision.datasets import KMNIST,MNIST
 #---------------------- parameters -----------------
 batch_size    = 64                 # number of samples per mini-batch
 num_works     = 2                   # setting in DataLoader Default: 0
-Epochs        = 200                # total epochs for training process
-torch.backends.cudnn.benchmark = True
+
 
 saving_best   = True
 Load_model    = False
 TestMODE      = False
+beta          = 0.05                # sampling rate
+in_channels   = 1                   # 1 for grey, 3 for PIL, 0 for all the npy patterns are inputed
+DataLoaderName = MNIST
+# DataLoaderName = (KMNIST,MNIST)
 
 imsize        = [112]
-beta          = 0.05                # sampling rate
+Epochs        = 200                # total epochs for training process
+torch.backends.cudnn.benchmark = True
 Noise         = 0                   # ratio of noise for intensity
 learning_rate = 5e-3
 momentum      = torch.tensor(8e-1)  # momentum for optimizer
 decay         = torch.tensor(1e-6)  # weight decay for regularisation
 
 Layers        = 10
-in_channels   = 1                   # 1 for grey, 3 for PIL, 0 for all the npy patterns are inputed
 kernel_size   = 10                   # kenel_size for conv layers
 ONEloss       = 'mean'                # reduce for loss function
 random_seed   = 42
-DataLoaderName = MNIST
-# DataLoaderName = (KMNIST,MNIST)
+
 
 paddingNum    =  (9,9,9,9)
 #--------------------------------------------------

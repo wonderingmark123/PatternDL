@@ -41,7 +41,7 @@ class DealDataset(Dataset):
         return self.len
 
 def trasnFcn(imsize = [54,98],datamean = 0.5,
-    datastd = 0.5 ):
+    datastd = 0.5 , Moving = True):
     # crop     = transforms.CenterCrop(imsize)
     resizeIMG  = transforms.Resize(size = imsize)
     # pad      = transforms.Pad((0, 0, 1, 1), fill=0)
@@ -63,7 +63,15 @@ def trasnFcn(imsize = [54,98],datamean = 0.5,
         totensor,
         # normalise,
     ])
-
+    if Moving:
+        transform = transforms.Compose([
+            resizeIMG,
+            rotate,
+            transforms.RandomRotation(360, resample=Image.BILINEAR, expand=False),
+            totensor,
+            transforms.RandomCrop(imsize,padding=(56,56))
+            # normalise,
+        ])
     return transform
 def ImportOriData(fileFolder="D:\\study\\PatternDL\\python\\data"
     ,imsize=[54,98]):
@@ -77,6 +85,7 @@ def ImportOriData(fileFolder="D:\\study\\PatternDL\\python\\data"
     return training_input
 def imageShow(Image):
     plt.imshow(Image)
+    plt.show()
 def LoadModel(model,SaveModelFile):
     state  = torch.load(os.path.join(SaveModelFile,'Modelpara.pth'))
     model.load_state_dict(state['net'])
