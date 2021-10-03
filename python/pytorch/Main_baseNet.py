@@ -1,11 +1,10 @@
 # -----------------Directory settings ------------------------------------------------
-MNISTsaveFolder = 'D:/study/DLpattern/PatternDL/python/data'
-SaveModelFile = "../data/B05_Layers2_pink_beta002_imsize112_kernel10_MNIST_Second"
-PatternFileName= 'D:/study/DLpattern/PatternDL/python/data/B05_Layers2_pink_beta002_imsize112_kernel10_MNIST_First/Patterns.npy'
-# PatternFileName = '../../PatternPink9.npy'
+MNISTsaveFolder = '../data'
+SaveModelFile = "../data/Local_Layers3_white_beta0005_imsize112_kernel10_First"
+# PatternFileName= '../data/B05_Layers2_pink_beta002_imsize112_kernel10_MNIST_crop_First/Patterns.npy'
+PatternFileName = '../../PatternWhite.npy'
 LoadModelFile = SaveModelFile
 # ----------------------------------------------------------------------------------------------
-from ast import Num
 import numpy as np
 import torch
 import os
@@ -18,16 +17,17 @@ import torch.nn.functional as F
 from tqdm import trange
 from torchvision.datasets import KMNIST,MNIST
 #---------------------- parameters -----------------
-batch_size    = 2                 # number of samples per mini-batch
-num_works     = 0                   # setting in DataLoader Default: 0
+batch_size    = 32                 # number of samples per mini-batch
+num_works     = 2                   # setting in DataLoader Default: 0
 
-saving_best   = False
+saving_best   = True
 Load_model    = False
 TestMODE      = False
-beta          = 0.02                # sampling rate
-in_channels   = 0                   # 1 for grey, 3 for PIL, 0 for all the npy patterns are inputed
+beta          = 0.005                # sampling rate
+in_channels   = 1                   # 1 for grey, 3 for PIL, 0 for all the npy patterns are inputed
 DataLoaderName = MNIST
-
+# lossFunction  = CNRlossFunction
+lossFunction  = F.mse_loss
 imsize        = [112]
 Noise         = 0                   # ratio of noise for intensity
 learning_rate = 5e-3
@@ -35,13 +35,13 @@ momentum      = torch.tensor(8e-1)  # momentum for optimizer
 decay         = torch.tensor(1e-6)  # weight decay for regularisation
 Epochs        = 200                # total epochs for training process
 torch.backends.cudnn.benchmark = True
-MultiGPU      = True
-Layers        = 10
+MultiGPU      = False
+# Layers        = 10
 
 kernel_size   = 10                   # kenel_size for conv layers
 ONEloss       = 'mean'                # reduce for loss function
 random_seed   = 42
-
+# lossFunction  = F.mse_loss
 paddingNum    =  (9,9,9,9)
 #--------------------------------------------------
 def BasicSettings():
@@ -122,7 +122,7 @@ def main():
     MINloss ,epochNow = 1e5,0
     MINtestLoss = 1e5
     epochTrainingLoss,epochTestingLoss = [] ,[]
-
+    model,PatternOrigin = model.to(device),PatternOrigin.float().to(device)
     # load model
     if Load_model or TestMODE:
         model,epochNow,epochTrainingLoss,MINloss = LoadModel(model,LoadModelFile)
@@ -130,7 +130,7 @@ def main():
         print("Let's use", torch.cuda.device_count(), "GPUs!")
         # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
         model = nn.DataParallel(model)
-    model,PatternOrigin = model.to(device),PatternOrigin.float().to(device)
+    
     optimizer = torch.optim.SGD( model.parameters() , lr=learning_rate, momentum=momentum, weight_decay=decay)
 
     
@@ -186,13 +186,13 @@ def main():
         model.train()
         train_losses = []
         for batch , (input_image, target) in enumerate(tqdm(trainingLoader)):
-            imageShow(input_image[0,0,:,:])
+            # imageShow(input_image[0,0,:,:])
             model.zero_grad()
             input_image     = input_image.to(device)
             Patterns        = model(PatternOrigin)
             stdInputImg     = torch.std(input_image)
             CGI_image       = generateCGI_func(input_image, Patterns, Number_Pattern,batch_size,stdInputImg)
-            loss            = F.mse_loss(input_image,CGI_image,reduction=ONEloss)
+            loss            = lossFunction(input_image,CGI_image,reduction=ONEloss)
             loss.backward()
             optimizer.step()
             train_losses.append(loss.item())
@@ -204,7 +204,7 @@ def main():
                 SavingModel(model,optimizer,epoch,epochTrainingLoss,MINloss)
         
         
-        print('Epoch: {:d}, Training Loss: {:}.'.format(epoch,epochTrainingLoss[epoch]))
+        # print('Epoch: {:d}, Training Loss: {:}.'.format(epoch,epochTrainingLoss[epoch]))
     return 0
 
 

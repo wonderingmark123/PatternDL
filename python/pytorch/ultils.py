@@ -1,6 +1,7 @@
 from ast import Num
 
 from typing import Pattern
+from torch.nn.functional import l1_loss
 from torch.utils.data import Dataset,dataloader,TensorDataset
 from torch.autograd import Variable
 import numpy as np
@@ -174,7 +175,13 @@ def LoadData(MNISTsaveFolder,imsize=[54,98],train = True,batch_size=32,num_works
     dataLoader = DataLoader(dataset= data_set,batch_size=batch_size, shuffle = True, num_workers=num_works,drop_last=True)
     return dataLoader
 
-
+def CNRlossFunction(signal,CGI
+    ,reduction='mean'):
+    signal1 = signal>0.5
+    backgrand = signal
+    loss = CGI*signal1/torch.sum(signal1,(2,3)).view([CGI.shape[0],CGI.shape[1],1,1]) - CGI*backgrand/torch.sum(backgrand,(2,3)).view([CGI.shape[0],CGI.shape[1],1,1])
+    loss = torch.mean(loss)
+    return loss
 def Training(trainingLoader,device,model):
     
     blursigma = (torch.tensor(1))

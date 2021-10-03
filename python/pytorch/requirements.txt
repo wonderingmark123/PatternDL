@@ -1,9 +1,5 @@
 tqdm
 torchvision
-ast
-typing
 numpy
-os
 matplotlib
-PIL
-math
+pytorch
